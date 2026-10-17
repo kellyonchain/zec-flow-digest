@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZEC Flow Digest</title>
+<meta name="description" content="Daily net movement of ZEC into and out of Zcash shielded pools, from public chain data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0e1a2b;--panel:#101e34;--line:#26385a;--text:#e8edf5;--muted:#93a3bd;--gold:#f4b728;--in:#3fb8af;--out:#e5604d}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.55 "Instrument Sans",system-ui,sans-serif}
+a{color:var(--gold)}
+a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.bar{position:sticky;top:0;z-index:5;background:rgba(14,26,43,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1040px;margin:0 auto;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.brand{color:var(--text);font:600 18px Fraunces,Georgia,serif;text-decoration:none}
+nav{display:flex;gap:22px;font-size:14px}
+nav a{color:var(--muted);text-decoration:none}
+nav a:hover{color:var(--text)}
+main{max-width:1040px;margin:0 auto;padding:56px 20px 72px}
+h1{font:600 clamp(30px,6vw,60px)/1.08 Fraunces,Georgia,serif;letter-spacing:-.01em;margin:0 0 14px;max-width:18em;font-variant-numeric:tabular-nums}
+.sub{color:var(--muted);margin:0 0 32px;max-width:62ch}
+#grid{display:flex;flex-wrap:wrap;gap:5px;max-width:860px;margin:8px 0 0}
+#grid i{width:11px;height:11px;border-radius:50%;animation:pop .45s ease-out backwards;transition:opacity .2s}
+#grid.focus i{opacity:.15}
+#grid.focus i.on{opacity:1}
+@keyframes pop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+.legend{display:flex;flex-wrap:wrap;gap:8px 22px;margin:18px 0 6px;font-size:14px}
+.legend span{display:inline-flex;align-items:center;gap:8px;cursor:default;padding:2px 0}
+.legend i{width:10px;height:10px;border-radius:50%}
+.legend b{font-weight:600}
+.cap{color:var(--muted);font-size:14px;margin:0 0 44px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 32px;border-top:1px solid var(--line);margin-bottom:28px}
+.stats div{padding:16px 0;border-bottom:1px solid var(--line)}
+.stats .k{display:block;color:var(--muted);font-size:14px}
+.stats .v{font:500 28px Fraunces,Georgia,serif;font-variant-numeric:tabular-nums}
+.pos{color:var(--in)}.neg{color:var(--out)}
+.callout{border-left:3px solid var(--gold);background:var(--panel);padding:16px 20px;margin:0 0 56px;max-width:78ch}
+.callout p{margin:0}
+section{margin-bottom:56px}
+h2{font:600 24px Fraunces,Georgia,serif;margin:0 0 6px}
+.note{color:var(--muted);margin:0 0 16px;max-width:66ch;font-size:15px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px}
+.chart{position:relative;height:320px}
+.method{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 36px}
+.method h3{font:600 17px Fraunces,Georgia,serif;margin:0 0 6px}
+.method p{margin:0;color:var(--muted);font-size:15px}
+footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:20px}
+@media(max-width:720px){.chart{height:260px}nav{gap:14px}.bar .in{padding:12px 16px}}
+@media(prefers-reduced-motion:reduce){#grid i{animation:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body id="top">
+<header class="bar"><div class="in">
+  <a class="brand" href="#top">ZEC Flow Digest</a>
+  <nav>
+    <a href="#flows">Flows</a>
+    <a href="#method">Method</a>
+    <a href="data/daily_totals.csv">Data</a>
+    <a href="https://github.com/kellyonchain/zec-flow-digest">GitHub</a>
+  </nav>
+</div></header>
+
+<main>
+  <h1 id="headline">Loading the latest data…</h1>
+  <p class="sub" id="subline"></p>
+  <div id="grid" aria-label="Shielded supply as dots, each dot 10,000 ZEC"></div>
+  <div class="legend" id="legend"></div>
+  <p class="cap">Each dot is 10,000 ZEC of shielded supply, colored by pool. Hover a pool to find its dots.</p>
+  <div class="stats" id="stats"></div>
+  <aside class="callout" id="callout" hidden><p id="calloutText"></p></aside>
+
+  <section id="flows">
+    <h2>Daily net flow</h2>
+    <p class="note">Change in total shielded supply from the previous day. Teal means ZEC moved into shielded pools, red means it moved out.</p>
+    <div class="panel"><div class="chart"><canvas id="flow"></canvas></div></div>
+  </section>
+
+  <section>
+    <h2>Total shielded supply</h2>
+    <p class="note">Combined balance of all four shielded pools, in ZEC.</p>
+    <div class="panel"><div class="chart"><canvas id="supply"></canvas></div></div>
+  </section>
+
+  <section>
+    <h2>Pool balances over time</h2>
+    <p class="note">A snapshot of every pool is saved to this repo each day, so this chart fills in as the days pass. A move between pools shows up as one band growing while another shrinks.</p>
+    <div class="panel"><div class="chart" id="poolhist"><canvas id="poolcanvas"></canvas></div></div>
+  </section>
+
+  <section id="method">
+    <h2>Method</h2>
+    <div class="method">
+      <div><h3>What it counts</h3><p>The day-to-day change in the combined size of all shielded pools: Sprout, Sapling, Orchard and Ironwood. A move from one pool to another cancels out, so a migration between pools is not counted as an inflow or outflow.</p></div>
+      <div><h3>What it cannot show</h3><p>Who moved the coins. Shielded transactions are private by design, so only totals entering or leaving the pools are visible.</p></div>
+      <div><h3>Data and timing</h3><p>Pulled from CipherScan’s public API and saved daily by a GitHub Action. The newest day may still be filling in, and per-pool history starts from the first snapshot.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Open data: <a href="data/daily_totals.csv">daily_totals.csv</a> and <a href="data/pool_snapshots.csv">pool_snapshots.csv</a>.
+    Source code on <a href="https://github.com/kellyonchain/zec-flow-digest">GitHub</a>.
+  </footer>
+</main>
+
+<script>
+(async function () {
+  var bust = "?v=" + Date.now();
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  function parseCsv(text) {
+    var lines = text.trim().split(/\r?\n/);
+    var head = lines[0].split(",");
+    return lines.slice(1).map(function (l) {
+      var c = l.split(","), o = {};
+      head.forEach(function (h, i) { o[h] = c[i]; });
+      return o;
+    });
+  }
+  async function load(path) {
+    var r = await fetch(path + bust);
+    if (!r.ok) throw new Error(path + " returned " + r.status);
+    return parseCsv(await r.text());
+  }
+  function fmt(n) { return Math.round(n).toLocaleString("en-US"); }
+  function sgn(n) { return (n >= 0 ? "+" : "\u2212") + fmt(Math.abs(n)); }
+  function cls(n) { return n >= 0 ? "pos" : "neg"; }
+  function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function fd(s) { var p = s.slice(0, 10).split("-"); return MONTHS[+p[1] - 1] + " " + (+p[2]); }
+
+  // Charts are created when scrolled into view, so the draw-in animation is actually seen.
+  function lazy(id, cfg) {
+    var el = document.getElementById(id);
+    if (!("IntersectionObserver" in window)) { new Chart(el, cfg); return; }
+    var io = new IntersectionObserver(function (e) {
+      if (e[0].isIntersecting) { new Chart(el, cfg); io.disconnect(); }
+    }, { threshold: 0.2 });
+    io.observe(el);
+  }
+
+  Chart.defaults.color = css("--muted");
+  Chart.defaults.borderColor = "rgba(147,163,189,.14)";
+  Chart.defaults.font.family = '"Instrument Sans", system-ui, sans-serif';
+  Chart.defaults.animation = reduce ? false : { duration: 1000, easing: "easeOutCubic" };
+
+  var xAxis = { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } };
+
+  try {
+    var daily = (await load("data/daily_totals.csv"))
+      .map(function (d) { return { date: d.date, pool: +d.poolSize }; })
+      .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    var snaps = await load("data/pool_snapshots.csv");
+
+    daily.forEach(function (d, i) { d.net = i ? d.pool - daily[i - 1].pool : null; });
+    var flows = daily.slice(1);
+    var last = flows[flows.length - 1];
+    var week = flows.slice(-7).reduce(function (s, d) { return s + d.net; }, 0);
+    var total = flows.reduce(function (s, d) { return s + d.net; }, 0);
+    var big = flows.reduce(function (m, d) { return Math.abs(d.net) > Math.abs(m.net) ? d : m; }, flows[0]);
+    var now = snaps[snaps.length - 1];
+    var sum = +now.total;
+
+    // Headline with a one-time count-up on the number
+    var h = document.getElementById("headline");
+    h.innerHTML = "Shielded supply " + (last.net >= 0 ? "rose " : "fell ") + '<span id="num">' +
+      fmt(Math.abs(last.net)) + "</span> ZEC on " + fd(last.date) + ", to " + fmt(last.pool) + ".";
+    if (!reduce) {
+      var target = Math.abs(last.net), num = document.getElementById("num"), t0 = null;
+      num.textContent = "0";
+      (function step(ts) {
+        if (t0 === null) t0 = ts;
+        var p = Math.min((ts - t0) / 1100, 1);
+        num.textContent = fmt(target * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) requestAnimationFrame(step);
+      })(performance.now());
+    }
+    document.getElementById("subline").textContent =
+      "Net movement of ZEC into and out of Zcash shielded pools, from public chain data. Updated " +
+      fd(now.timestamp_utc) + ", " + now.timestamp_utc.slice(11, 16) + " UTC.";
+
+    document.getElementById("stats").innerHTML =
+      '<div><span class="k">Net flow, last 7 days</span><span class="v ' + cls(week) + '">' + sgn(week) + ' ZEC</span></div>' +
+      '<div><span class="k">Net flow, last ' + flows.length + ' days</span><span class="v ' + cls(total) + '">' + sgn(total) + ' ZEC</span></div>' +
+      '<div><span class="k">Largest single day (' + fd(big.date) + ')</span><span class="v ' + cls(big.net) + '">' + sgn(big.net) + ' ZEC</span></div>';
+
+    if (Math.abs(big.net) >= 0.6 * Math.abs(total)) {
+      document.getElementById("callout").hidden = false;
+      document.getElementById("calloutText").textContent =
+        fd(big.date) + " alone moved " + sgn(big.net) + " ZEC, " +
+        (Math.abs(big.net) > Math.abs(total) ? "more than the entire " : "most of the ") +
+        flows.length + "-day net of " + sgn(total) + " ZEC. Without it, net flow is " +
+        sgn(total - big.net) + " ZEC. This data does not show what caused it.";
+    }
+
+    // Dot grid, colored by pool, with hover focus
+    var pools = [
+      { key: "ironwood", name: "Ironwood", color: "#f4b728" },
+      { key: "sapling", name: "Sapling", color: "#9b8cff" },
+      { key: "orchard", name: "Orchard", color: "#58a6ff" },
+      { key: "sprout", name: "Sprout", color: "#c9d1e0" }
+    ];
+    var dots = "", start = 0, cum = 0, idx = 0;
+    pools.forEach(function (p) {
+      cum += +now[p.key];
+      var end = Math.round(cum / 10000);
+      for (; start < end; start++) {
+        dots += '<i data-p="' + p.key + '" style="background:' + p.color + ';animation-delay:' + (idx++ * 3) + 'ms" title="' + p.name + '"></i>';
+      }
+    });
+    var gridEl = document.getElementById("grid");
+    gridEl.innerHTML = dots;
+    function focusPool(key) {
+      gridEl.classList.toggle("focus", !!key);
+      gridEl.querySelectorAll("i").forEach(function (d) { d.classList.toggle("on", d.dataset.p === key); });
+    }
+    var legend = document.getElementById("legend");
+    legend.innerHTML = pools.map(function (p) {
+      return '<span tabindex="0" data-key="' + p.key + '"><i style="background:' + p.color + '"></i>' + p.name + ' <b>' +
+        (+now[p.key] / sum * 100).toFixed(1) + '%</b></span>';
+    }).join("");
+    legend.querySelectorAll("span").forEach(function (el) {
+      el.addEventListener("mouseenter", function () { focusPool(el.dataset.key); });
+      el.addEventListener("mouseleave", function () { focusPool(null); });
+      el.addEventListener("focus", function () { focusPool(el.dataset.key); });
+      el.addEventListener("blur", function () { focusPool(null); });
+    });
+
+    // Charts
+    lazy("flow", {
+      type: "bar",
+      data: { labels: flows.map(function (d) { return fd(d.date); }), datasets: [{
+        data: flows.map(function (d) { return Math.round(d.net); }),
+        backgroundColor: flows.map(function (d) { return d.net >= 0 ? css("--in") : css("--out"); }),
+        borderRadius: 3
+      }] },
+      options: { maintainAspectRatio: false, scales: { x: xAxis },
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return sgn(c.parsed.y) + " ZEC"; } } } } }
+    });
+
+    lazy("supply", {
+      type: "line",
+      data: { labels: daily.map(function (d) { return fd(d.date); }), datasets: [{
+        data: daily.map(function (d) { return Math.round(d.pool); }),
+        borderColor: css("--gold"), backgroundColor: "rgba(244,183,40,.12)", fill: true,
+        pointRadius: 0, pointHoverRadius: 4, borderWidth: 2, tension: 0.25
+      }] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return fmt(c.parsed.y) + " ZEC"; } } } },
+        scales: { x: xAxis, y: { beginAtZero: false, grace: "10%", ticks: { callback: function (v) { return fmt(v); } } } } }
+    });
+
+    var box = document.getElementById("poolhist");
+    if (snaps.length >= 2) {
+      lazy("poolcanvas", {
+        type: "line",
+        data: { labels: snaps.map(function (s) { return fd(s.timestamp_utc); }),
+          datasets: pools.map(function (p) { return {
+            label: p.name, data: snaps.map(function (s) { return Math.round(+s[p.key]); }),
+            borderColor: p.color, backgroundColor: p.color + "55", fill: true, borderWidth: 1, pointRadius: 0
+          }; }) },
+        options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+          scales: { x: xAxis, y: { stacked: true, ticks: { callback: function (v) { return fmt(v); } } } } }
+      });
+    } else {
+      box.style.height = "auto";
+      box.innerHTML = '<p class="note" style="margin:0">Pool history starts with the first daily snapshot (' +
+        fd(snaps[0].timestamp_utc) + '). Check back tomorrow for the first trend line.</p>';
+    }
+  } catch (err) {
+    document.getElementById("headline").textContent = "The data files could not be loaded.";
+    document.getElementById("subline").textContent =
+      "Check that data/daily_totals.csv and data/pool_snapshots.csv exist in the repo. Details: " + err.message;
+  }
+})();
+</script>
+</body>
+</html>
