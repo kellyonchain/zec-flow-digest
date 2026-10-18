@@ -2,7 +2,7 @@ name: Collect Zcash data
 
 on:
   schedule:
-    - cron: "5 0 * * *"
+    - cron: "5 */6 * * *"
   workflow_dispatch:
 
 permissions:
