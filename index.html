@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#05070d">
 <title>ZEC Flow Digest</title>
 <meta name="description" content="Daily net movement of ZEC into and out of Zcash shielded pools, from public chain data.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,26 +11,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0e1a2b;--panel:#101e34;--line:#26385a;--text:#e8edf5;--muted:#93a3bd;--gold:#f4b728;--in:#3fb8af;--out:#e5604d}
+:root{--bg:#05070d;--panel:rgba(10,15,25,.8);--line:#1c2638;--text:#e9eef7;--muted:#8d9bb3;--gold:#f4b728;--in:#3fb8af;--out:#e5604d}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.55 "Instrument Sans",system-ui,sans-serif}
+body{margin:0;color:var(--text);font:400 16px/1.55 "Instrument Sans",system-ui,sans-serif;background:radial-gradient(120% 60% at 50% 118%,#111c36 0%,var(--bg) 62%) fixed var(--bg)}
 a{color:var(--gold)}
 a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
-.bar{position:sticky;top:0;z-index:5;background:rgba(14,26,43,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+#sky{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+#prog{position:fixed;top:0;left:0;height:2px;width:100%;background:var(--gold);transform-origin:left;transform:scaleX(0);z-index:20}
+.bar{position:sticky;top:0;z-index:10;background:rgba(5,7,13,.72);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .bar .in{max-width:1040px;margin:0 auto;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px}
 .brand{color:var(--text);font:600 18px Fraunces,Georgia,serif;text-decoration:none}
 nav{display:flex;gap:22px;font-size:14px}
-nav a{color:var(--muted);text-decoration:none}
+nav a{color:var(--muted);text-decoration:none;transition:color .2s}
 nav a:hover{color:var(--text)}
-main{max-width:1040px;margin:0 auto;padding:56px 20px 72px}
+main{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:56px 20px 72px}
 h1{font:600 clamp(30px,6vw,60px)/1.08 Fraunces,Georgia,serif;letter-spacing:-.01em;margin:0 0 14px;max-width:18em;font-variant-numeric:tabular-nums}
 .sub{color:var(--muted);margin:0 0 32px;max-width:62ch}
 #grid{display:flex;flex-wrap:wrap;gap:5px;max-width:860px;margin:8px 0 0}
-#grid i{width:11px;height:11px;border-radius:50%;animation:pop .45s ease-out backwards;transition:opacity .2s}
-#grid.focus i{opacity:.15}
+#grid i{width:11px;height:11px;border-radius:50%;animation:pop .5s cubic-bezier(.2,.8,.3,1.3) backwards;transition:opacity .2s,transform .15s ease-out}
+#grid.focus i{opacity:.14}
 #grid.focus i.on{opacity:1}
-@keyframes pop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+@keyframes pop{from{opacity:0;transform:scale(.2)}to{opacity:1;transform:scale(1)}}
 .legend{display:flex;flex-wrap:wrap;gap:8px 22px;margin:18px 0 6px;font-size:14px}
 .legend span{display:inline-flex;align-items:center;gap:8px;cursor:default;padding:2px 0}
 .legend i{width:10px;height:10px;border-radius:50%}
@@ -45,17 +48,22 @@ h1{font:600 clamp(30px,6vw,60px)/1.08 Fraunces,Georgia,serif;letter-spacing:-.01
 section{margin-bottom:56px}
 h2{font:600 24px Fraunces,Georgia,serif;margin:0 0 6px}
 .note{color:var(--muted);margin:0 0 16px;max-width:66ch;font-size:15px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;transition:border-color .3s}
+.panel:hover{border-color:#34445f}
 .chart{position:relative;height:320px}
 .method{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 36px}
 .method h3{font:600 17px Fraunces,Georgia,serif;margin:0 0 6px}
 .method p{margin:0;color:var(--muted);font-size:15px}
 footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:20px}
+.rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+.rv.in{opacity:1;transform:none}
 @media(max-width:720px){.chart{height:260px}nav{gap:14px}.bar .in{padding:12px 16px}}
 @media(prefers-reduced-motion:reduce){#grid i{animation:none}html{scroll-behavior:auto}}
 </style>
 </head>
 <body id="top">
+<canvas id="sky" aria-hidden="true"></canvas>
+<div id="prog"></div>
 <header class="bar"><div class="in">
   <a class="brand" href="#top">ZEC Flow Digest</a>
   <nav>
@@ -71,7 +79,7 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
   <p class="sub" id="subline"></p>
   <div id="grid" aria-label="Shielded supply as dots, each dot 10,000 ZEC"></div>
   <div class="legend" id="legend"></div>
-  <p class="cap">Each dot is 10,000 ZEC of shielded supply, colored by pool. Hover a pool to find its dots.</p>
+  <p class="cap">Each dot is 10,000 ZEC of shielded supply, colored by pool. Hover a pool to find its dots, or move your cursor over the grid.</p>
   <div class="stats" id="stats"></div>
   <aside class="callout" id="callout" hidden><p id="calloutText"></p></aside>
 
@@ -109,9 +117,77 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
 </main>
 
 <script>
+var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Night sky: twinkling stars with depth parallax (scroll and pointer) and the occasional shooting star
+(function () {
+  var c = document.getElementById("sky"), x = c.getContext("2d");
+  var W, H, stars = [], px = 0, py = 0, tx = 0, ty = 0, shoot = null, next = 4000, raf = 0;
+  function size() {
+    var d = Math.min(window.devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    c.width = W * d; c.height = H * d; x.setTransform(d, 0, 0, d, 0, 0);
+    stars = [];
+    for (var i = 0, n = Math.round(W * H / 9000); i < n; i++) {
+      stars.push({ x: Math.random(), y: Math.random(), r: 0.3 + Math.random() * 1.1, a: 0.25 + Math.random() * 0.6,
+        s: 0.4 + Math.random() * 1.6, p: Math.random() * 6.28, z: 0.02 + Math.random() * 0.1, g: Math.random() < 0.06 });
+    }
+  }
+  function draw(t) {
+    x.clearRect(0, 0, W, H);
+    var sy = reduce ? 0 : window.scrollY;
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i], tw = reduce ? 1 : 0.65 + 0.35 * Math.sin(t / 1000 * s.s + s.p);
+      x.globalAlpha = s.a * tw;
+      x.fillStyle = s.g ? "#f4b728" : "#dfe8ff";
+      x.beginPath();
+      x.arc(s.x * W + px * s.z * 120, ((s.y * H - sy * s.z) % H + H) % H + py * s.z * 120, s.r, 0, 6.283);
+      x.fill();
+    }
+    if (!reduce) {
+      if (!shoot && t > next) shoot = { x: Math.random() * W * 0.7, y: Math.random() * H * 0.4, t: t };
+      if (shoot) {
+        var k = (t - shoot.t) / 900;
+        if (k >= 1) { shoot = null; next = t + 7000 + Math.random() * 8000; }
+        else {
+          var hx = shoot.x + k * 420, hy = shoot.y + k * 190;
+          var g = x.createLinearGradient(hx - 110, hy - 50, hx, hy);
+          g.addColorStop(0, "rgba(255,255,255,0)");
+          g.addColorStop(1, "rgba(255,255,255," + (0.9 * (1 - k)) + ")");
+          x.globalAlpha = 1; x.strokeStyle = g; x.lineWidth = 1.5;
+          x.beginPath(); x.moveTo(hx - 110, hy - 50); x.lineTo(hx, hy); x.stroke();
+        }
+      }
+    }
+    x.globalAlpha = 1;
+  }
+  function loop(t) {
+    px += (tx - px) * 0.05; py += (ty - py) * 0.05;
+    draw(t);
+    raf = requestAnimationFrame(loop);
+  }
+  size();
+  addEventListener("resize", function () { size(); if (reduce) draw(0); });
+  if (reduce) { draw(0); return; }
+  addEventListener("pointermove", function (e) { tx = e.clientX / W - 0.5; ty = e.clientY / H - 0.5; });
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) cancelAnimationFrame(raf); else raf = requestAnimationFrame(loop);
+  });
+  raf = requestAnimationFrame(loop);
+})();
+
+// Reading progress bar
+(function () {
+  var prog = document.getElementById("prog");
+  function on() {
+    var h = document.documentElement.scrollHeight - innerHeight;
+    prog.style.transform = "scaleX(" + (h > 0 ? scrollY / h : 0) + ")";
+  }
+  addEventListener("scroll", on, { passive: true }); on();
+})();
+
 (async function () {
   var bust = "?v=" + Date.now();
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
   function parseCsv(text) {
@@ -134,21 +210,31 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
   function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
   function fd(s) { var p = s.slice(0, 10).split("-"); return MONTHS[+p[1] - 1] + " " + (+p[2]); }
 
-  // Charts are created when scrolled into view, so the draw-in animation is actually seen.
-  function lazy(id, cfg) {
-    var el = document.getElementById(id);
-    if (!("IntersectionObserver" in window)) { new Chart(el, cfg); return; }
+  // Run fn once when el scrolls into view
+  function whenVisible(el, fn, threshold) {
+    if (!("IntersectionObserver" in window)) { fn(); return; }
     var io = new IntersectionObserver(function (e) {
-      if (e[0].isIntersecting) { new Chart(el, cfg); io.disconnect(); }
-    }, { threshold: 0.2 });
+      if (e[0].isIntersecting) { fn(); io.disconnect(); }
+    }, { threshold: threshold || 0.2 });
     io.observe(el);
   }
+  function lazy(id, cfg) {
+    var el = document.getElementById(id);
+    whenVisible(el, function () { new Chart(el, cfg); });
+  }
+  function countTo(el, target, ms, render) {
+    (function step(ts) {
+      var p = Math.min((ts - t0) / ms, 1);
+      el.textContent = render(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    })(t0 = performance.now());
+  }
+  var t0 = 0;
 
   Chart.defaults.color = css("--muted");
-  Chart.defaults.borderColor = "rgba(147,163,189,.14)";
+  Chart.defaults.borderColor = "rgba(147,163,189,.12)";
   Chart.defaults.font.family = '"Instrument Sans", system-ui, sans-serif';
   Chart.defaults.animation = reduce ? false : { duration: 1000, easing: "easeOutCubic" };
-
   var xAxis = { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } };
 
   try {
@@ -166,28 +252,26 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
     var now = snaps[snaps.length - 1];
     var sum = +now.total;
 
-    // Headline with a one-time count-up on the number
     var h = document.getElementById("headline");
     h.innerHTML = "Shielded supply " + (last.net >= 0 ? "rose " : "fell ") + '<span id="num">' +
       fmt(Math.abs(last.net)) + "</span> ZEC on " + fd(last.date) + ", to " + fmt(last.pool) + ".";
-    if (!reduce) {
-      var target = Math.abs(last.net), num = document.getElementById("num"), t0 = null;
-      num.textContent = "0";
-      (function step(ts) {
-        if (t0 === null) t0 = ts;
-        var p = Math.min((ts - t0) / 1100, 1);
-        num.textContent = fmt(target * (1 - Math.pow(1 - p, 3)));
-        if (p < 1) requestAnimationFrame(step);
-      })(performance.now());
-    }
+    if (!reduce) countTo(document.getElementById("num"), Math.abs(last.net), 1300, fmt);
     document.getElementById("subline").textContent =
       "Net movement of ZEC into and out of Zcash shielded pools, from public chain data. Updated " +
       fd(now.timestamp_utc) + ", " + now.timestamp_utc.slice(11, 16) + " UTC.";
 
+    var vals = [week, total, big.net];
     document.getElementById("stats").innerHTML =
       '<div><span class="k">Net flow, last 7 days</span><span class="v ' + cls(week) + '">' + sgn(week) + ' ZEC</span></div>' +
       '<div><span class="k">Net flow, last ' + flows.length + ' days</span><span class="v ' + cls(total) + '">' + sgn(total) + ' ZEC</span></div>' +
       '<div><span class="k">Largest single day (' + fd(big.date) + ')</span><span class="v ' + cls(big.net) + '">' + sgn(big.net) + ' ZEC</span></div>';
+    if (!reduce) {
+      whenVisible(document.getElementById("stats"), function () {
+        document.querySelectorAll("#stats .v").forEach(function (el, i) {
+          countTo(el, vals[i], 1400, function (v) { return sgn(v) + " ZEC"; });
+        });
+      }, 0.5);
+    }
 
     if (Math.abs(big.net) >= 0.6 * Math.abs(total)) {
       document.getElementById("callout").hidden = false;
@@ -198,7 +282,6 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
         sgn(total - big.net) + " ZEC. This data does not show what caused it.";
     }
 
-    // Dot grid, colored by pool, with hover focus
     var pools = [
       { key: "ironwood", name: "Ironwood", color: "#f4b728" },
       { key: "sapling", name: "Sapling", color: "#9b8cff" },
@@ -215,9 +298,29 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
     });
     var gridEl = document.getElementById("grid");
     gridEl.innerHTML = dots;
+    var dotEls = Array.prototype.slice.call(gridEl.children), pts = [], hraf = 0, mx = -9999, my = -9999;
     function focusPool(key) {
       gridEl.classList.toggle("focus", !!key);
-      gridEl.querySelectorAll("i").forEach(function (d) { d.classList.toggle("on", d.dataset.p === key); });
+      dotEls.forEach(function (d) { d.classList.toggle("on", d.dataset.p === key); });
+    }
+    function measure() {
+      pts = dotEls.map(function (d) {
+        var r = d.getBoundingClientRect();
+        return { x: r.left + r.width / 2 + scrollX, y: r.top + r.height / 2 + scrollY };
+      });
+    }
+    function hover() {
+      hraf = 0;
+      if (!pts.length) measure();
+      for (var i = 0; i < dotEls.length; i++) {
+        var dx = pts[i].x - mx, dy = pts[i].y - my, d = Math.sqrt(dx * dx + dy * dy);
+        dotEls[i].style.transform = d < 90 ? "scale(" + (1 + (1 - d / 90) * 1.1).toFixed(2) + ")" : "";
+      }
+    }
+    if (!reduce) {
+      gridEl.addEventListener("pointermove", function (e) { mx = e.pageX; my = e.pageY; if (!hraf) hraf = requestAnimationFrame(hover); });
+      gridEl.addEventListener("pointerleave", function () { mx = my = -9999; if (!hraf) hraf = requestAnimationFrame(hover); });
+      addEventListener("resize", function () { pts = []; });
     }
     var legend = document.getElementById("legend");
     legend.innerHTML = pools.map(function (p) {
@@ -231,7 +334,7 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
       el.addEventListener("blur", function () { focusPool(null); });
     });
 
-    // Charts
+    // Charts: bars rise one after another, the supply line draws itself left to right
     lazy("flow", {
       type: "bar",
       data: { labels: flows.map(function (d) { return fd(d.date); }), datasets: [{
@@ -240,18 +343,29 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
         borderRadius: 3
       }] },
       options: { maintainAspectRatio: false, scales: { x: xAxis },
+        animation: reduce ? false : { delay: function (ctx) { return ctx.type === "data" && ctx.mode === "default" ? ctx.dataIndex * 28 : 0; } },
         plugins: { legend: { display: false },
           tooltip: { callbacks: { label: function (c) { return sgn(c.parsed.y) + " ZEC"; } } } } }
     });
 
+    var per = 1700 / daily.length;
+    function prevY(ctx) {
+      return ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(ctx.chart.scales.y.min)
+        : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(["y"], true).y;
+    }
     lazy("supply", {
       type: "line",
       data: { labels: daily.map(function (d) { return fd(d.date); }), datasets: [{
         data: daily.map(function (d) { return Math.round(d.pool); }),
-        borderColor: css("--gold"), backgroundColor: "rgba(244,183,40,.12)", fill: true,
-        pointRadius: 0, pointHoverRadius: 4, borderWidth: 2, tension: 0.25
+        borderColor: css("--gold"), borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, tension: 0.25
       }] },
       options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        animation: reduce ? false : {
+          x: { type: "number", easing: "linear", duration: per, from: NaN,
+            delay: function (ctx) { if (ctx.type !== "data" || ctx.xStarted) return 0; ctx.xStarted = true; return ctx.index * per; } },
+          y: { type: "number", easing: "linear", duration: per, from: prevY,
+            delay: function (ctx) { if (ctx.type !== "data" || ctx.yStarted) return 0; ctx.yStarted = true; return ctx.index * per; } }
+        },
         plugins: { legend: { display: false },
           tooltip: { callbacks: { label: function (c) { return fmt(c.parsed.y) + " ZEC"; } } } },
         scales: { x: xAxis, y: { beginAtZero: false, grace: "10%", ticks: { callback: function (v) { return fmt(v); } } } } }
@@ -273,6 +387,18 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
       box.style.height = "auto";
       box.innerHTML = '<p class="note" style="margin:0">Pool history starts with the first daily snapshot (' +
         fd(snaps[0].timestamp_utc) + '). Check back tomorrow for the first trend line.</p>';
+    }
+
+    // Scroll reveals, staggered within each group
+    if (!reduce && "IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+      }, { threshold: 0.12 });
+      document.querySelectorAll(".stats > div, .callout, section > h2, section > .note, .panel, .method > div").forEach(function (el) {
+        el.classList.add("rv");
+        el.style.transitionDelay = Math.min(Array.prototype.indexOf.call(el.parentNode.children, el), 4) * 90 + "ms";
+        io.observe(el);
+      });
     }
   } catch (err) {
     document.getElementById("headline").textContent = "The data files could not be loaded.";
