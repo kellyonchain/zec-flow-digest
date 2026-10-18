@@ -106,7 +106,7 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
     <div class="method">
       <div><h3>What it counts</h3><p>The day-to-day change in the combined size of all shielded pools: Sprout, Sapling, Orchard and Ironwood. A move from one pool to another cancels out, so a migration between pools is not counted as an inflow or outflow.</p></div>
       <div><h3>What it cannot show</h3><p>Who moved the coins. Shielded transactions are private by design, so only totals entering or leaving the pools are visible.</p></div>
-      <div><h3>Data and timing</h3><p>Pulled from CipherScan’s public API and saved daily by a GitHub Action. The newest day may still be filling in, and per-pool history starts from the first snapshot.</p></div>
+      <div><h3>Data and timing</h3><p>Pulled from CipherScan’s public API and saved daily by a GitHub Action. The current UTC day is drawn as a partial bar and left out of the headline and totals until it completes. Per-pool history starts from the first snapshot.</p></div>
     </div>
   </section>
 
@@ -245,10 +245,12 @@ var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     daily.forEach(function (d, i) { d.net = i ? d.pool - daily[i - 1].pool : null; });
     var flows = daily.slice(1);
-    var last = flows[flows.length - 1];
-    var week = flows.slice(-7).reduce(function (s, d) { return s + d.net; }, 0);
-    var total = flows.reduce(function (s, d) { return s + d.net; }, 0);
-    var big = flows.reduce(function (m, d) { return Math.abs(d.net) > Math.abs(m.net) ? d : m; }, flows[0]);
+    var partial = flows[flows.length - 1].date >= new Date().toISOString().slice(0, 10);
+    var full = partial ? flows.slice(0, -1) : flows;
+    var last = full[full.length - 1];
+    var week = full.slice(-7).reduce(function (s, d) { return s + d.net; }, 0);
+    var total = full.reduce(function (s, d) { return s + d.net; }, 0);
+    var big = full.reduce(function (m, d) { return Math.abs(d.net) > Math.abs(m.net) ? d : m; }, full[0]);
     var now = snaps[snaps.length - 1];
     var sum = +now.total;
 
@@ -258,12 +260,13 @@ var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduce) countTo(document.getElementById("num"), Math.abs(last.net), 1300, fmt);
     document.getElementById("subline").textContent =
       "Net movement of ZEC into and out of Zcash shielded pools, from public chain data. Updated " +
-      fd(now.timestamp_utc) + ", " + now.timestamp_utc.slice(11, 16) + " UTC.";
+      fd(now.timestamp_utc) + ", " + now.timestamp_utc.slice(11, 16) + " UTC." +
+      (partial ? " " + fd(flows[flows.length - 1].date) + " is still in progress, so it is shown as a partial bar and left out of the figures above." : "");
 
     var vals = [week, total, big.net];
     document.getElementById("stats").innerHTML =
       '<div><span class="k">Net flow, last 7 days</span><span class="v ' + cls(week) + '">' + sgn(week) + ' ZEC</span></div>' +
-      '<div><span class="k">Net flow, last ' + flows.length + ' days</span><span class="v ' + cls(total) + '">' + sgn(total) + ' ZEC</span></div>' +
+      '<div><span class="k">Net flow, last ' + full.length + ' days</span><span class="v ' + cls(total) + '">' + sgn(total) + ' ZEC</span></div>' +
       '<div><span class="k">Largest single day (' + fd(big.date) + ')</span><span class="v ' + cls(big.net) + '">' + sgn(big.net) + ' ZEC</span></div>';
     if (!reduce) {
       whenVisible(document.getElementById("stats"), function () {
@@ -278,7 +281,7 @@ var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       document.getElementById("calloutText").textContent =
         fd(big.date) + " alone moved " + sgn(big.net) + " ZEC, " +
         (Math.abs(big.net) > Math.abs(total) ? "more than the entire " : "most of the ") +
-        flows.length + "-day net of " + sgn(total) + " ZEC. Without it, net flow is " +
+        full.length + "-day net of " + sgn(total) + " ZEC. Without it, net flow is " +
         sgn(total - big.net) + " ZEC. This data does not show what caused it.";
     }
 
@@ -339,13 +342,15 @@ var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       type: "bar",
       data: { labels: flows.map(function (d) { return fd(d.date); }), datasets: [{
         data: flows.map(function (d) { return Math.round(d.net); }),
-        backgroundColor: flows.map(function (d) { return d.net >= 0 ? css("--in") : css("--out"); }),
+        backgroundColor: flows.map(function (d, i) { var c = d.net >= 0 ? css("--in") : css("--out"); return partial && i === flows.length - 1 ? c + "55" : c; }),
+        borderColor: flows.map(function (d, i) { return partial && i === flows.length - 1 ? (d.net >= 0 ? css("--in") : css("--out")) : "transparent"; }),
+        borderWidth: 1,
         borderRadius: 3
       }] },
       options: { maintainAspectRatio: false, scales: { x: xAxis },
         animation: reduce ? false : { delay: function (ctx) { return ctx.type === "data" && ctx.mode === "default" ? ctx.dataIndex * 28 : 0; } },
         plugins: { legend: { display: false },
-          tooltip: { callbacks: { label: function (c) { return sgn(c.parsed.y) + " ZEC"; } } } } }
+          tooltip: { callbacks: { label: function (c) { return sgn(c.parsed.y) + " ZEC" + (partial && c.dataIndex === flows.length - 1 ? " (so far today)" : ""); } } } } }
     });
 
     var per = 1700 / daily.length;
