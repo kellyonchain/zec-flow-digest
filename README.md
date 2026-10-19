@@ -9,7 +9,7 @@ Built for **ZECATHON** (Core & Tooling track).
 
 ## What it does
 
-A GitHub Action runs every day at 00:05 UTC. It calls CipherScan's public API and saves two things to this repo:
+A GitHub Action runs every six hours (00:05, 06:05, 12:05 and 18:05 UTC). It calls CipherScan's public API and saves two things to this repo:
 
 1. The combined shielded pool balance for each day (the API provides the latest 30 days, and this repo keeps adding to them).
 2. A snapshot of each pool's balance (Sprout, Sapling, Orchard, Ironwood).
@@ -50,7 +50,7 @@ Anyone is free to reuse the CSV files. They are served publicly from the live si
 ## How it works
 
 - `collect.py` fetches the API response and updates the two CSV files (Python, `requests` only).
-- `.github/workflows/collect.yml` runs it daily and commits the new data.
+- `.github/workflows/collect.yml` runs it every six hours and commits the new data.
 - `index.html` is a single static page (Chart.js) served by GitHub Pages.
 
 To run the collector yourself:
@@ -76,10 +76,6 @@ Not included: no wallet, no node, no direct chain parsing. The data comes from C
 ## Data source
 
 Pool and supply data comes from [CipherScan](https://cipherscan.app)'s public API. No CipherScan code is used here.
-
-## AI disclosure
-
-Built with AI assistance (Claude) for code and design. All code was written during the ZECATHON build window. The author ran and deployed it.
 
 ## Next steps
 
