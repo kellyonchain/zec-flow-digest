@@ -62,13 +62,13 @@ python collect.py
 
 ## What is real and what is not
 
-Real: the daily collection, the stored history, the net flow calculation and the live dashboard, all running on public data.
+Real: the automated collection, the stored history, the net flow calculation and the live dashboard, all running on public data.
 
 Not included: no wallet, no node, no direct chain parsing. The data comes from CipherScan's API, so this project depends on it.
 
 ## Limitations
 
-- The API only provides the latest 30 days of combined history. Per-pool history starts at the first snapshot (2026-10-17) and grows each day.
+- The API only provides the latest 30 days of combined history. Per-pool history starts at the first snapshot (2026-10-17) and grows with every run.
 - The current UTC day is partial, so the dashboard draws it faded and leaves it out of the headline and totals until it completes.
 - The data shows how much moved, not why. For example, 2026-09-30 shows a single-day increase of about 49,395 ZEC that this data does not explain.
 - Shielded transactions are private by design, so this cannot show who moved the coins.
@@ -77,8 +77,10 @@ Not included: no wallet, no node, no direct chain parsing. The data comes from C
 
 Pool and supply data comes from [CipherScan](https://cipherscan.app)'s public API. No CipherScan code is used here.
 
-## Next steps
+## AI tools
 
-- Find and document the cause of the Sep 30 jump.
-- Add longer per-pool history if a source for it is available.
-- Mark key network events on the charts.
+AI tool used: Claude, for coding help. All code was written during the ZECATHON build window.
+
+## License
+
+MIT
